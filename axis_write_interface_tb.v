@@ -105,7 +105,7 @@ module axis_write_interface_tb();
 
             // Assign bram_dout based on t_keep
             if (t_keep[i]) begin
-                t_data = $random;
+                t_data = $random;   /// some random data coming
             end
 
             @(posedge axis_clk); //2
@@ -145,7 +145,7 @@ endmodule
 
 
 
-
+// This is another way to give data depends upon user: 
 
   // Clock generation
   /*  initial begin
