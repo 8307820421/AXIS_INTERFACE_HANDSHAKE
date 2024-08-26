@@ -19,6 +19,8 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+// here code will further edit as if (last byte transfered then t_last will active)
+// when t_last active then the tready deasserted based upon the testbench.
 module axis_write_interface #(
     parameter data_width = 512,
     parameter counter_width = 10, // AXI stream does not support address interface
