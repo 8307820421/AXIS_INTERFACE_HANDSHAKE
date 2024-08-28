@@ -67,76 +67,89 @@ module axis_write_interface_tb();
         .bram_data(bram_data)
     );
 
+  integer i;
+   always #10 axis_clk = ~axis_clk;
+   
+   // stimuli for input reg
+   initial begin
  
-
-
-     
-     initial
-     axis_clk = 1'b1;
-    // Clock generation
-    always #(`clk_period/2) axis_clk = ~axis_clk;
+   t_valid = 1'b0;
+   t_data =  0;
+   t_last = 1'b0;
+   reset = 1'b1;
+   t_keep = {keep_width{1'b0}};
+   repeat(5) @(posedge axis_clk) ;
     
-    integer i;
-    // Stimulus generation
-    initial begin
-        // Initialize inputs
-        axis_clk = 0;
-        reset = 1;
-        t_valid = 0;
-        t_data = 0;
-        t_last = 0;
-        t_keep = 0;
-        bram_dout = 0;
-        // Apply reset
-       repeat(3) @(posedge axis_clk);
-       
-        reset = 0;
-        // do not specify the clk here or repeating the clock here as it reset will be 0 (as per current situation)
-        /*  based upon need you can again set the reset high  */
-        
-        // Test stimulus
-         t_valid = 1;
-         
-         
-         
-        // Apply `t_keep` logic and move `t_data` to `bram_data`
-        for (i = 0; i <= counter_width - 1; i = i + 1) begin
-            t_keep = {keep_width{1'b1}} << i; // Shift t_keep bits to represent varying valid byte lanes
-
-            // Assign bram_dout based on t_keep
-            if (t_keep[i]) begin
-                t_data = $random;   /// some random data coming
-            end
-
-            @(posedge axis_clk); //2
-
-            // Set t_last on the last cycle
-            if (i == counter_width - 1) begin
-                t_last <= 1'b1;
-            end 
-            
-        end
-     
-        // End the transfer
-        
-        t_valid = 0;
-         @(posedge axis_clk); //2
-        
-         t_last = 0;
-         @(posedge axis_clk); //2
-        // End simulation
-       // #100;
-         
-         
-         
-
-        $finish;
-    end
+    // stimuli for high reset and t_valid
+    reset = 1'b0; 
+    for (i = 0; i<mem_size_depth ; i= i+1) // for indexing based on that data will go
+    begin
+    @(posedge axis_clk); // clk for loop
+    
+    // tvalid
+    t_valid = 1'b1;
+    t_keep[i] = {keep_width{1'b1}};
+    t_data = $urandom;
+    bram_dout = bram_data;
+    //@(posedge axis_clk);  // clk for tvalid//tdta
+    
+    end 
+   @(posedge axis_clk); // clk for entire loop
+    
+    t_last = 1'b1;
+    @(posedge axis_clk); // clk for t_last
+    
+    t_last = 0;
+    t_valid = 0;
+    @(posedge axis_clk); // clk for deasserted the tlast and tvalid
+      $finish;
+  
+   end
 
 endmodule
 
     
-    
+// alternate approach//
+
+
+//// Clock generation
+////initial axis_clk = 1'b1;
+//always #10 axis_clk = ~axis_clk;
+
+//integer i;
+// // Stimulus generation
+//initial begin
+//// Initialize inputs
+//reset = 1;
+//t_valid = 1'b0;
+//t_last = 1'b0;
+//t_keep = {keep_width{1'b0}};
+//repeat(10) @(posedge axis_clk);
+
+ 
+// for (i = 0; i<= (mem_size_depth-1) ; i= i+1) begin
+
+//@(posedge axis_clk);
+//reset = 0;
+//t_valid = 1'b1;
+//t_keep[i] = {keep_width{1'b1}} ; // based upon t_keep validity
+//t_data = $random;
+//t_last = 1'b0;
+
+
+//@(posedge t_ready);
+//t_last = 1'b0;
+
+//@(negedge t_ready);
+//t_valid= 1'b0;
+//t_last = 1'b1;
+
+
+
+//end
+ 
+ 
+//end
         
 
 
@@ -145,85 +158,7 @@ endmodule
 
 
 
-// This is another way to give data depends upon user: 
 
-  // Clock generation
-  /*  initial begin
-        axis_clk = 0;
-        forever #5 axis_clk = ~axis_clk; // 100 MHz clock (10ns period)
-    end
-
-    // Test stimulus
-    initial begin
-        // Initialize inputs
-        reset = 1;
-        t_valid = 0;
-        t_data = 0;
-        t_last = 0;
-        t_keep = 0;
-        bram_dout = 0;
-
-        // Apply reset
-        #20;  // Hold reset for 2 clock cycles
-        reset = 0;
-
-        // Test case 1: Write a single packet with all bytes valid
-        @(posedge axis_clk);
-        t_valid = 1;
-        t_data = 512'hAABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899;
-        t_keep = {keep_width{1'b1}};
-        t_last = 0;
-
-        @(posedge axis_clk);
-        t_valid = 1;
-        t_data = 512'h11223344556677889900AABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF;
-        t_last = 0; // Indicate this is the last beat of the packet
-
-        @(posedge axis_clk);
-        t_valid = 0;
-        t_data = 0;
-        t_keep = 0;
-        t_last = 0;
-
-        // Wait for some time
-        #100;
-
-        // Test case 2: Write a packet with partial valid bytes
-        @(posedge axis_clk);
-        t_valid = 1;
-        t_data = 512'hFFEEDDCCBBAA99887766554433221100FFEEDDCCBBAA99887766554433221100FFEEDDCCBBAA99887766554433221100FFEEDDCCBBAA99887766554433221100;
-        t_keep = 64'hFFFFFFFF00000000; // Only the first half of the data is valid
-        t_last = 1; // Indicate this is the last beat of the packet
-
-        @(posedge axis_clk);
-        t_valid = 0;
-        t_data = 0;
-        t_keep = 0;
-        t_last = 0;
-
-        // Wait for some time
-        #100;
-
-        // Test case 3: Write a packet with a single valid byte
-        @(posedge axis_clk);
-        t_valid = 1;
-        t_data = 512'h11223344556677889900AABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF;
-        t_keep = 64'h0000000000000001; // Only the first byte is valid
-        t_last = 1; // Indicate this is the last beat of the packet
-
-        @(posedge axis_clk);
-        t_valid = 0;
-        t_data = 0;
-        t_keep = 0;
-        t_last = 0;
-
-        // Wait for some time
-        #100;
-
-        $stop;
-    end   */
-    
-    
 
 
 
